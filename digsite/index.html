@@ -4,13 +4,15 @@
 	<link rel="stylesheet" type="text/css" href="game.css">
 </head>
 <body>
-	hi everyone <br /><br />
-
-	<button onclick="dig()">DIG</button> <br />
-	<button onclick="identify()">IDENTIFY</button><progress id="identify_progress_bar" value=0 max=100>0%</progress><br />
-	digs required: <span id="digs_required">0</span><br />
-	dig progress: <span id="total_digs">0</span><br />
-	bones found: <div id="bone_chart">NA</div>
-	skeletons assembled: <div id="skeleton_chart">NA</div>
+	<div id="main_container" style="position: fixed; width: 40%">
+		<button onclick="dig()">DIG</button><progress id="dig_progress_bar" value=0 max=100></progress><br />
+		<div id="identify_container">
+			<button onclick="identify()">IDENTIFY</button><progress id="identify_progress_bar" value=0 max=100>0%</progress><br />
+		</div>
+		bones found: <div id="bone_chart">NA</div>
+		<br />
+		<div id="skeleton_chart">skeletons assembled:<br /></div>
+	</div>
+	<div id="news_container" style="position: absolute; width: 20%; right: 5px"></div>
 </body>
 </html>

@@ -2,8 +2,11 @@ var game = "fun";
 
 var current_dig_progress = 0;
 var current_bone = 0;
-var dig_rate = 1;
-var digs_done = 0;
+var dig_rate = 5;
+var dig_progress = 0;
+var dig_timer = null;
+var total_bones_dug = 0;
+var bones_required_for_skeleton_chart = 3;
 
 var identify_update_in_millis = 100;
 var identify_progress = 0;
@@ -12,12 +15,42 @@ var current_identify_bone = 0;
 var identify_timer = null;
 
 //--------------------------------------------
+// news events
+var news_events = [
+	{
+		text: "<br />You've found quite a few bones. You might want to start identifying them!",
+		valid: function() { return total_bones_dug >= bones_required_for_skeleton_chart; },
+		triggered: false,
+		trigger_function: function() {
+			dom_identify_container.style.display = "block";
+		}
+	},
+	{
+		text: "<br />You've assembled your very first skeleton! Keep it up!",
+		valid: function() {
+			for(let index in skeletons) {
+				var skeleton = skeletons[index];
+				if(skeleton.completed) { return true; }
+			}
+			return false;
+		},
+		triggered: false,
+		trigger_function: function() {
+			dom_skeleton_chart.style.display = "block";
+		}
+	}
+];
+
+//--------------------------------------------
 // DOM stuff
 var dom_bone_chart = Object;
 var dom_total_digs = Object;
 var dom_digs_required = Object;
 var dom_skeleton_chart = Object;
 var dom_identify_progress = Object;
+var dom_dig_progress = Object;
+var dom_news_container = Object;
+var dom_identify_container = Object;
 
 function cache_doms() {
 	dom_bone_chart = document.getElementById("bone_chart");
@@ -25,6 +58,9 @@ function cache_doms() {
 	dom_digs_required = document.getElementById("digs_required");
 	dom_skeleton_chart = document.getElementById("skeleton_chart");
 	dom_identify_progress = document.getElementById("identify_progress_bar");
+	dom_dig_progress = document.getElementById("dig_progress_bar");
+	dom_news_container = document.getElementById("news_container");
+	dom_identify_container = document.getElementById("identify_container");
 }
 
 //--------------------------------------------
@@ -59,23 +95,24 @@ bones[2] = {
 var skeletons = [];
 skeletons[0] = {
 	name: "t-rex",
-	required_bones: [0, 1]
+	required_bones: [0, 1],
+	completed: false
 };
 
 skeletons[1] = {
 	name: "skull of guldan",
-	required_bones: [2]
+	required_bones: [2],
+	completed: false
 };
 
 function choose_bone() {
 	current_bone = Math.floor(Math.random() * bones.length);
-
-	dom_digs_required.innerText = bones[current_bone].digs_required;
 }
 
 function dig_bone(index) {
 	bones[index].digs_completed++;
-	update_bone_chart();
+	total_bones_dug++;
+	update_all();
 }
 
 function identify() {
@@ -85,9 +122,30 @@ function identify() {
 	}
 }
 
+function dig() {
+	if(!dig_timer) {
+		choose_bone();
+		dig_timer = setInterval(update_dig_progress, identify_update_in_millis);
+	}
+}
+
+function update_dig_progress() {
+	dig_progress += (1 / (1000 / identify_update_in_millis) * dig_rate);
+	var dig_progress_ratio = dig_progress / bones[current_bone].digs_required;
+	dom_dig_progress.value = (100 * dig_progress_ratio);
+
+	if(dig_progress >= bones[current_bone].digs_required) {
+		dig_progress = 0;
+		dom_dig_progress.value = 0;
+		clearInterval(dig_timer);
+		dig_timer = null;
+
+		dig_bone(current_bone);
+	}
+}
+
 function update_identify_progress() {
 	identify_progress += (1 / (1000 / identify_update_in_millis));
-	console.log(identify_progress);
 	var identify_progress_ratio = identify_progress / identify_cap;
 	dom_identify_progress.value = (100 * identify_progress_ratio);
 	if(identify_progress >= identify_cap)
@@ -113,7 +171,7 @@ function identify_bone() {
 	if(viable_bones.length > 0) {
 		var which = Math.floor(Math.random() * viable_bones.length);
 		bones[viable_bones[which]].identified = true;
-		update_bone_chart();
+		update_all();
 	}
 }
 
@@ -137,21 +195,26 @@ function update_bone_chart() {
 	}
 
 	dom_bone_chart.innerHTML = table_string;
-
-	update_skeleton_chart();
 }
 
 function update_skeleton_chart() {
-	var skeleton_string = "";
+	if(total_bones_dug < bones_required_for_skeleton_chart) { return; }
+
+	var skeleton_string = "skeletons assembled:<br />";
 	for(let index in skeletons)
 	{
 		var skeleton = skeletons[index];
-		console.log(skeleton);
+		skeleton_string += skeleton.name + ": ";
+		if(skeleton.completed)
+		{
+			skeleton_string += "COMPLETED <br />";
+			break;
+		}
+
 		var found_missing_bone = false;
 		for(let bone_index in skeleton.required_bones)
 		{
 			var bone = bones[skeleton.required_bones[bone_index]];
-			console.log(bone);
 			if(!bone.identified || (bone.required_for_skeleton > bone.digs_completed))
 			{
 				found_missing_bone = true;
@@ -159,10 +222,11 @@ function update_skeleton_chart() {
 			}
 		}
 
-		skeleton_string += skeleton.name + ": ";
 		if(!found_missing_bone)
 		{
 			skeleton_string += "COMPLETED <br />";
+			// this is the first time
+			skeleton.completed = true;
 		}
 		else
 		{
@@ -173,16 +237,22 @@ function update_skeleton_chart() {
 	dom_skeleton_chart.innerHTML = skeleton_string;
 }
 
-function dig() {
-	current_dig_progress += dig_rate;
-	if(current_dig_progress >= bones[current_bone].digs_required)
+function update_news() {
+	for(let index in news_events)
 	{
-		current_dig_progress = 0;
-		dig_bone(current_bone);
-		choose_bone();
+		var event = news_events[index];
+		if(!event.triggered && event.valid()) {
+			news_events[index].triggered = true;
+			dom_news_container.innerHTML += news_events[index].text;
+			news_events[index].trigger_function();
+		}
 	}
+}
 
-	dom_total_digs.innerHTML = current_dig_progress;
+function update_all() {
+	update_bone_chart();
+	update_skeleton_chart();
+	update_news();
 }
 
 window.onload = (function() {
