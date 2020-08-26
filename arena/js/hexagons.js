@@ -6,9 +6,11 @@
 		hexRectangleHeight,
 		hexRectangleWidth,
 		hexagonAngle = 0.523598776, // 30 degrees in radians
-		sideLength = 10,
-		boardWidth = 100,
-		boardHeight = 100;
+		sideLength = 30,
+		boardWidth = 10,
+		boardHeight = 11,
+		oldScreenX = -1,
+		oldScreenY = -1;
 
 	hexHeight = Math.sin(hexagonAngle) * sideLength;
 	hexRadius = Math.cos(hexagonAngle) * sideLength;
@@ -44,15 +46,21 @@
 			screenX = hexX * hexRectangleWidth + ((hexY % 2) * hexRadius);
 			screenY = hexY * (hexHeight + sideLength);
 
-			ctx.clearRect(0, 0, canvas.width, canvas.height);
+			//ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-			drawBoard(ctx, boardWidth, boardHeight);
+			//drawBoard(ctx, boardWidth, boardHeight);
 
 			// are the mouse's coords on the board?
 			if(hexX >= 0 && hexX < boardWidth) {
 				if(hexY >= 0 && hexY < boardHeight) {
-					ctx.fillStyle = "#000000";
+					if(oldScreenX != -1 && oldScreenY != -1) {
+						ctx.fillStyle = "#FFFFFF";
+						drawHexagon(ctx, oldScreenX, oldScreenY, true);
+					}
+					ctx.fillStyle = "#434343";
 					drawHexagon(ctx, screenX, screenY, true);
+					oldScreenX = screenX;
+					oldScreenY = screenY;
 				}
 			}
 		});
@@ -74,7 +82,7 @@
 		}
 	}
 
-	function drawHexagon(canvasContext, x, y, fil) {
+	function drawHexagon(canvasContext, x, y, fill) {
 		var fill = fill || false;
 
 		canvasContext.beginPath();
