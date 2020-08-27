@@ -1,0 +1,5 @@
+todo
+
+- add character class
+- add two characters to the grid
+- move them around on random updates
