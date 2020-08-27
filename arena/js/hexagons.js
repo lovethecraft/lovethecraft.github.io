@@ -136,6 +136,24 @@ function drawHexagon(canvasContext, hex, fill) {
 		canvasContext.fill();
 	}
 	else {
+		// is there a character here?
+		var foundCharacter = false;
+		for(var x = 0; x < characters.length; x++) {
+			if(characters[x].position.q == hex.q && characters[x].position.r == hex.r) {
+				if(characters[x].class == "Water") {
+					canvasContext.fillStyle = "#0000FF";
+				} else if(characters[x].class == "Earth") {
+					canvasContext.fillStyle = "#964b00";
+				} else if(characters[x].class == "Air") {
+					canvasContext.fillStyle = "#c0c0c0";
+				} else if(characters[x].class == "Fire") {
+					canvasContext.fillStyle = "#FF0000";
+				}
+				canvasContext.fill();
+				return;
+			}
+		}
+
 		canvasContext.stroke();
 	}
 }
@@ -144,12 +162,14 @@ function getIndexForHexagon(q, r) {
 	return (q * numHexes) + r;
 }
 
+//--- GLOBALS
 var canvas = document.getElementById('hexmap');
-
 var numHexes = 7; // largest row/col across the middle
 var hexes = [];
 var oldHexQ = -1;
 var oldHexR = -1;
+var characters = [];
+var currentlyClickedHex = null;
 
 function start() {
 	// fill hexes
@@ -160,6 +180,17 @@ function start() {
 		}
 	}
 
+	// just using two characters for testing for now
+	var c1 = new Character();
+	c1.class = "Water";
+	c1.position = {q: 4, r: 4};
+	characters.push(c1);
+
+	var c2 = new Character();
+	c2.class = "Earth";
+	c2.position = {q:2, r: 2};
+	characters.push(c2);
+
 	if(canvas.getContext) {
 		var ctx = canvas.getContext('2d');
 		drawBoard(ctx);
@@ -169,6 +200,7 @@ function start() {
 
 			var x = eventInfo.clientX - rect.left;
 			var y = eventInfo.clientY - rect.top;
+			//console.log("Mouse at (" + x + ", " + y + ")");
 			var hex = hexes[0].pixelToHex(x, y);
 
 			var whichIndex = getIndexForHexagon(hex.q, hex.r);
@@ -213,11 +245,18 @@ function start() {
 				return;
 			}
 
+			if(currentlyClickedHex != null) {
+				currentlyClickedHex.clicked = false;
+			}
+
 			var bounds = Math.floor(numHexes / 2);
 			var dist = hexes[whichIndex].distanceTo(bounds, bounds, (-1 * (bounds + bounds)));
 			if(dist <= bounds) {
 				hexes[whichIndex].clickHandler();
+				currentlyClickedHex = hexes[whichIndex];
 			}
+
+			update(ctx);
 		});
 	}
 }
