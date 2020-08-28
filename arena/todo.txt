@@ -1,5 +1,6 @@
 todo
 
-- move them around on random updates
---- get hex neighbors
---- directions
+- add the concept of targeting mode
+--- target a spot or a player
+- add a card you can click on that makes you target something
+- move the character you targeted

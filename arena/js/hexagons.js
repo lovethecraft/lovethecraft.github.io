@@ -5,8 +5,8 @@ function Hex(q, r) {
 	this.selected = false;
 	this.clicked = false;
 
-	this.addHex = function(q, r, s) {
-		return {q: this.q + q, r: this.r + r, s: this.s + s};
+	this.addHex = function(inHex) {
+		return {q: this.q + inHex.q, r: this.r + inHex.r, s: this.s + inHex.s};
 	};
 
 	this.subtractHex = function(q, r, s) {
@@ -35,8 +35,8 @@ function Hex(q, r) {
 	};
 
 	this.layout = {
-		size: {q: 30, r: 30},
-		origin: {q: 100, r: 100}
+		size: {q: 40, r: 40},
+		origin: {q: 25, r: 100}
 	};
 
 	this.hexToPixel = function() {
@@ -91,177 +91,35 @@ function Hex(q, r) {
 		return coords;
 	};
 
+	this.getNeighbor = function(direction) {
+		var hexDirections = [
+			{q: 1, r: 0, s: -1},
+			{q: 1, r: -1, s: 0},
+			{q: 0, r: -1, s: 1},
+			{q: -1, r: 0, s: 1},
+			{q: -1, r: 1, s: 0},
+			{q: 0, r: 1, s: -1}
+		];
+
+		if(direction < 0 || direction > 5) { return null; }
+
+		var hexCoords = this.addHex(hexDirections[direction]);
+		// get the real hex
+		var hexIndex = getIndexForHexagon(hexCoords.q, hexCoords.r);
+		if(hexIndex < 0 || hexIndex > (hexes.length - 1)) { return null; }
+		var hex = hexes[hexIndex];
+
+		var half = Math.floor(numHexes / 2);
+		if(hex.distanceTo(half, half, (-numHexes)) > half) { return null; }
+		
+		return this.addHex(hexDirections[direction]);
+	};
+
 	this.clickHandler = function() {
 		this.clicked = true;
-	}
-}
-
-function drawBoard(canvasContext) {
-	canvasContext.fillStyle = "#000000";
-	canvasContext.strokeStyle = "#CCCCCC";
-	canvasContext.lineWidth = 1;
-
-	var bounds = Math.floor(numHexes / 2);
-
-	for(var i = 0; i < hexes.length; i++) {
-		var hex = hexes[i];
-		var dist = hex.distanceTo(bounds, bounds, (-1 * (bounds + bounds)));
-		if(dist <= bounds) {
-			drawHexagon(canvasContext, hex, false);
-		}
-	}
-}
-
-function drawHexagon(canvasContext, hex, fill) {
-	var fill = fill || false;
-
-	canvasContext.beginPath();
-
-	var coords = hex.polygonCorners();
-	for(var c = 0; c < coords.length; c++) {
-		if(c == 0) {
-			canvasContext.moveTo(coords[c].q, coords[c].r);
-		} else {
-			canvasContext.lineTo(coords[c].q, coords[c].r);
-		}
-	}
-
-	canvasContext.closePath();
-
-	if(fill || (hex.selected == true)) {
-		canvasContext.fillStyle = "#000000";
-		canvasContext.fill();
-	} else if(hex.clicked == true) {
-		canvasContext.fillStyle = "#FFFF00";
-		canvasContext.fill();
-	}
-	else {
-		// is there a character here?
-		var foundCharacter = false;
-		for(var x = 0; x < characters.length; x++) {
-			if(characters[x].position.q == hex.q && characters[x].position.r == hex.r) {
-				if(characters[x].class == "Water") {
-					canvasContext.fillStyle = "#0000FF";
-				} else if(characters[x].class == "Earth") {
-					canvasContext.fillStyle = "#964b00";
-				} else if(characters[x].class == "Air") {
-					canvasContext.fillStyle = "#c0c0c0";
-				} else if(characters[x].class == "Fire") {
-					canvasContext.fillStyle = "#FF0000";
-				}
-				canvasContext.fill();
-				return;
-			}
-		}
-
-		canvasContext.stroke();
-	}
+	};
 }
 
 function getIndexForHexagon(q, r) {
 	return (q * numHexes) + r;
-}
-
-//--- GLOBALS
-var canvas = document.getElementById('hexmap');
-var numHexes = 7; // largest row/col across the middle
-var hexes = [];
-var oldHexQ = -1;
-var oldHexR = -1;
-var characters = [];
-var currentlyClickedHex = null;
-
-function start() {
-	// fill hexes
-	for(var i = 0; i < numHexes; ++i) {
-		for(var j = 0; j < numHexes; ++j) {
-			var h = new Hex(i, j);
-			hexes.push(h);
-		}
-	}
-
-	// just using two characters for testing for now
-	var c1 = new Character();
-	c1.class = "Water";
-	c1.position = {q: 4, r: 4};
-	characters.push(c1);
-
-	var c2 = new Character();
-	c2.class = "Earth";
-	c2.position = {q:2, r: 2};
-	characters.push(c2);
-
-	if(canvas.getContext) {
-		var ctx = canvas.getContext('2d');
-		drawBoard(ctx);
-
-		canvas.addEventListener("mousemove", function(eventInfo) {
-			var rect = canvas.getBoundingClientRect();
-
-			var x = eventInfo.clientX - rect.left;
-			var y = eventInfo.clientY - rect.top;
-			//console.log("Mouse at (" + x + ", " + y + ")");
-			var hex = hexes[0].pixelToHex(x, y);
-
-			var whichIndex = getIndexForHexagon(hex.q, hex.r);
-			if(whichIndex < 0 || whichIndex >= hexes.length) {
-				return;
-			}
-
-			var bounds = Math.floor(numHexes / 2);
-			var dist = hexes[whichIndex].distanceTo(bounds, bounds, (-1 * (bounds + bounds)));
-			if(dist <= bounds) {
-				if(oldHexQ == hexes[whichIndex].q && oldHexR == hexes[whichIndex].r) {
-					return;
-				}
-
-				if(oldHexQ != -1 && oldHexR != -1) {
-					ctx.fillStyle = "#FFFFFF";
-					var oldIndex = getIndexForHexagon(oldHexQ, oldHexR);
-					//drawHexagon(ctx, hexes[oldIndex], true);
-					//ctx.fillStyle = "#000000";
-					hexes[oldIndex].selected = false;
-				}
-
-				//drawHexagon(ctx, hexes[whichIndex], true);
-				hexes[whichIndex].selected = true;
-				oldHexQ = hexes[whichIndex].q;
-				oldHexR = hexes[whichIndex].r;
-
-				console.log("Selected (" + hexes[whichIndex].q + ", " + hexes[whichIndex].r + ")");
-				update(ctx);
-			}
-		});
-
-		canvas.addEventListener("mouseup", function(eventInfo) {
-			var rect = canvas.getBoundingClientRect();
-
-			var x = eventInfo.clientX - rect.left;
-			var y = eventInfo.clientY - rect.top;
-			var hex = hexes[0].pixelToHex(x, y);
-
-			var whichIndex = getIndexForHexagon(hex.q, hex.r);
-			if(whichIndex < 0 || whichIndex >= hexes.length) {
-				return;
-			}
-
-			if(currentlyClickedHex != null) {
-				currentlyClickedHex.clicked = false;
-			}
-
-			var bounds = Math.floor(numHexes / 2);
-			var dist = hexes[whichIndex].distanceTo(bounds, bounds, (-1 * (bounds + bounds)));
-			if(dist <= bounds) {
-				hexes[whichIndex].clickHandler();
-				currentlyClickedHex = hexes[whichIndex];
-			}
-
-			update(ctx);
-		});
-	}
-}
-
-function update(ctx) {
-	ctx.clearRect(0, 0, canvas.width, canvas.height);
-	drawBoard(ctx);
 }
