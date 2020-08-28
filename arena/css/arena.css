@@ -1,0 +1,52 @@
+canvas {
+	border:0;
+	display:block;
+	margin:0 auto;
+}
+
+#hand {
+	margin: auto;
+	width: 500px;
+	height: 250px;
+}
+
+#hand:before,
+#hand:after {
+	content: "";
+	display: table;
+}
+
+#hand:after {
+	clear: both;
+}
+
+#hand {
+	zoom: 1;
+}
+
+.card { 
+	position: relative;
+	float: left;
+	margin-right: 10px;
+	width: 150px;
+	height: 220px;
+	border-radius: 10px;
+	background: #fff;
+	-webkit-box-shadow: 3px 3px 7px rgba(0,0,0,0.3);
+	box-shadow: 3px 3px 7px rgba(0,0,0,0.3);
+}
+
+.card:hover {
+	cursor: pointer;
+}
+
+.card p {
+	text-align: center;
+	font: 12px Georgia, Times New Roman, serif;
+}
+
+#status {
+	margin: auto;
+	width: 300px;
+	border: 3px solid green;
+}

@@ -1,23 +1,23 @@
 var canvas = document.getElementById('hexmap');
+var statusDiv = document.getElementById('status');
 var canvasContext = null;
 var numHexes = 7; // largest row/col across the middle
+var halfHexes = Math.floor(numHexes / 2);
 var hexes = [];
 var oldHexQ = -1;
 var oldHexR = -1;
 var characters = [];
-var currentlyClickedHex = null;
+var targetingMode = false;
 
 function drawBoard() {
 	canvasContext.fillStyle = "#000000";
 	canvasContext.strokeStyle = "#CCCCCC";
 	canvasContext.lineWidth = 1;
 
-	var bounds = Math.floor(numHexes / 2);
-
 	for(var i = 0; i < hexes.length; i++) {
 		var hex = hexes[i];
-		var dist = hex.distanceTo(bounds, bounds, (-1 * (bounds + bounds)));
-		if(dist <= bounds) {
+		var dist = hex.distanceTo(halfHexes, halfHexes, -2 * halfHexes);
+		if(dist <= halfHexes) {
 			drawHexagon(hex, false);
 		}
 	}
@@ -82,8 +82,7 @@ function start() {
 	for(var i = 0; i < numHexes; ++i) {
 		for(var j = 0; j < numHexes; ++j) {
 			var h = new Hex(i, j);
-			var halfBound = Math.floor(numHexes / 2);
-			if(h.distanceTo(halfBound, halfBound, (halfBound * -2)) <= halfBound) {
+			if(h.distanceTo(halfHexes, halfHexes, -1 * halfHexes * 2) <= halfHexes) {
 				hexes.push(h);
 			}
 		}
@@ -131,9 +130,8 @@ function start() {
 				return;
 			}
 
-			var bounds = Math.floor(numHexes / 2);
-			var dist = hexes[whichIndex].distanceTo(bounds, bounds, (-1 * (bounds + bounds)));
-			if(dist <= bounds) {
+			var dist = hexes[whichIndex].distanceTo(halfHexes, halfHexes, -2 * halfHexes);
+			if(dist <= halfHexes) {
 				if(oldHexQ == hexes[whichIndex].q && oldHexR == hexes[whichIndex].r) {
 					return;
 				}
@@ -168,15 +166,22 @@ function start() {
 				return;
 			}
 
-			if(currentlyClickedHex != null) {
-				currentlyClickedHex.clicked = false;
-			}
-
-			var bounds = Math.floor(numHexes / 2);
-			var dist = hexes[whichIndex].distanceTo(bounds, bounds, -numHexes);
-			if(dist <= bounds) {
-				hexes[whichIndex].clickHandler();
-				currentlyClickedHex = hexes[whichIndex];
+			var dist = hexes[whichIndex].distanceTo(halfHexes, halfHexes, -2 * halfHexes);
+			if(dist <= halfHexes) {
+				if(targetingMode == true) {
+					// did we click on a valid target? for now we are just going to
+					// detect who you clicked on and move them, for testing
+					for(var i = 0; i < characters.length; i++) {
+						var character = characters[i];
+						if((character.position.q == hex.q) && character.position.r == hex.r) {
+							moveCharacterRandomDirection(character);
+							deactivateTargetingMode();
+							break;
+						}
+					}
+				}
+				//hexes[whichIndex].clickHandler();
+				//currentlyClickedHex = hexes[whichIndex];
 			}
 
 			update();
@@ -187,6 +192,7 @@ function start() {
 function update() {
 	canvasContext.clearRect(0, 0, canvas.width, canvas.height);
 	drawBoard();
+	statusDiv.innerHTML = "Targeting Mode: " + targetingMode;
 }
 
 function moveCharacter(character, direction) {
@@ -208,6 +214,11 @@ function moveCharacter(character, direction) {
 }
 
 // testing
+function moveCharacterRandomDirection(character) {
+	var direction = Math.floor(Math.random() * 5);
+	moveCharacter(character, direction);
+}
+
 function moveRandomCharacter(direction) {
 	var index = Math.floor(Math.random() * characters.length);
 	var character = characters[index];
@@ -220,5 +231,14 @@ function moveRandomCharacter(direction) {
 function moveRandomCharacterRandomDirection() {
 	var direction = Math.floor(Math.random() * 5);
 	moveRandomCharacter(direction);
+}
+
+function activateTargetingMode() {
+	targetingMode = true;
+	update();
+}
+
+function deactivateTargetingMode() {
+	targetingMode = false;
 	update();
 }

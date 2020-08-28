@@ -1,9 +1,9 @@
 todo
 
-- add the concept of targeting mode
---- target a spot or a player
+CARDS
+- cards need IDs so we can attach functionality to their onclicks
+- cards need definitions that populate their divs
 - add a card you can click on that makes you target something
-- move the character you targeted
 
 *** FIX THE DISTANCE CHECK HOLY SHIT ***
 !!! HECKIN BEANS YOU DID IT YOU MAD LAD !!!

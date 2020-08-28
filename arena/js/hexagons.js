@@ -3,7 +3,6 @@ function Hex(q, r) {
 	this.r = r;
 	this.s = -q - r;
 	this.selected = false;
-	this.clicked = false;
 
 	this.addHex = function(inHex) {
 		return {q: this.q + inHex.q, r: this.r + inHex.r, s: this.s + inHex.s};
@@ -113,10 +112,6 @@ function Hex(q, r) {
 		if(hex.distanceTo(half, half, (-numHexes)) > half) { return null; }
 		
 		return this.addHex(hexDirections[direction]);
-	};
-
-	this.clickHandler = function() {
-		this.clicked = true;
 	};
 }
 
