@@ -40,9 +40,14 @@ function drawHexagon(hex, fill) {
 	canvasContext.closePath();
 
 	if(fill || (hex.selected == true)) {
-		canvasContext.fillStyle = "#000000";
-		canvasContext.fill();
-	} else if(hex.clicked == true) {
+		canvasContext.lineWidth = 3;// = "#000000";
+		canvasContext.strokeStyle = "#000000";
+		canvasContext.stroke();
+		canvasContext.lineWidth = 1;
+		canvasContext.strokeStyle = "#CCCCCC";
+	}
+
+	if(hex.clicked == true) {
 		canvasContext.fillStyle = "#FFFF00";
 		canvasContext.fill();
 	} else if(hex.r == Math.floor(numHexes / 2)) {
@@ -77,7 +82,10 @@ function start() {
 	for(var i = 0; i < numHexes; ++i) {
 		for(var j = 0; j < numHexes; ++j) {
 			var h = new Hex(i, j);
-			hexes.push(h);
+			var halfBound = Math.floor(numHexes / 2);
+			if(h.distanceTo(halfBound, halfBound, (halfBound * -2)) <= halfBound) {
+				hexes.push(h);
+			}
 		}
 	}
 
@@ -94,6 +102,18 @@ function start() {
 	c2.team = "North";
 	characters.push(c2);
 
+	var c3 = new Character();
+	c3.class = "Fire";
+	c3.team = "North";
+	c3.position = {q: 4, r: 1};
+	characters.push(c3);
+
+	var c4 = new Character();
+	c4.class = "Air";
+	c4.team = "South";
+	c4.position = {q:2, r: 5};
+	characters.push(c4);
+
 	if(canvas.getContext) {
 		canvasContext = canvas.getContext('2d');
 		drawBoard(canvasContext);
@@ -105,7 +125,6 @@ function start() {
 			var y = eventInfo.clientY - rect.top;
 			//console.log("Mouse at (" + x + ", " + y + ")");
 			var hex = hexes[0].pixelToHex(x, y);
-			console.log("Found hex: (" + hex.q + ", " + hex.r + ")");
 
 			var whichIndex = getIndexForHexagon(hex.q, hex.r);
 			if(whichIndex < 0 || whichIndex >= hexes.length) {
@@ -154,7 +173,7 @@ function start() {
 			}
 
 			var bounds = Math.floor(numHexes / 2);
-			var dist = hexes[whichIndex].distanceTo(bounds, bounds, (-1 * (bounds + bounds)));
+			var dist = hexes[whichIndex].distanceTo(bounds, bounds, -numHexes);
 			if(dist <= bounds) {
 				hexes[whichIndex].clickHandler();
 				currentlyClickedHex = hexes[whichIndex];

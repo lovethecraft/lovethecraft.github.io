@@ -4,3 +4,7 @@ todo
 --- target a spot or a player
 - add a card you can click on that makes you target something
 - move the character you targeted
+
+*** FIX THE DISTANCE CHECK HOLY SHIT ***
+!!! HECKIN BEANS YOU DID IT YOU MAD LAD !!!
+*** LEAVING THIS NOTE HERE BECAUSE MAN I FEEL GOOD ABOUT FIXING THAT BAD BOY ***

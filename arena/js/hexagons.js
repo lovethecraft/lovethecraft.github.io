@@ -121,5 +121,12 @@ function Hex(q, r) {
 }
 
 function getIndexForHexagon(q, r) {
-	return (q * numHexes) + r;
+	for(var i = 0; i < hexes.length; i++) {
+		if((hexes[i].q == q) && (hexes[i].r == r)) {
+			return i;
+		}
+	}
+
+	return -1;
+	//return (q * numHexes) + r;
 }
