@@ -6,16 +6,45 @@
 
 		<link rel="stylesheet" href="css/arena.css">
 	</head>
-	<body onload="start()">
-		<div id="status">
-			status
+	<body>
+		<!-- <button id="myBtn">Open Modal</button> -->
+		<div class="modal" id="gameMenuContainer" style="display: block;">
+			<div class="modal-content">
+				<span class="close">&times;</span>
+				<div id="gameMenuChooseTeamContainer">
+					CHOOSE A TEAM:<br />
+					<input type="radio" id="chooseTeamNorth" name="chooseTeam">
+					<label for="chooseTeamNorth">North</label><br />
+					<input type="radio" id="chooseTeamSouth" name="chooseTeam">
+					<label for="chooseTeamSouth">South</label><br />
+				</div>
+				<div id="gameMenuChooseCharacterContainer">
+					Choose two characters:<br />
+					<input type="checkbox" id="chooseCharacterEarth">
+					<label for="chooseCharacterEarth">Earth</label><br />
+					<input type="checkbox" id="chooseCharacterWater">
+					<label for="chooseCharacterWater">Water</label><br />
+					<input type="checkbox" id="chooseCharacterAir">
+					<label for="chooseCharacterAir">Air</label><br />
+					<input type="checkbox" id="chooseCharacterFire">
+					<label for="chooseCharacterFire">Fire</label><br />
+				</div>
+				<button id="finishSetupButton">Start!</button>
+			</div>
 		</div>
-		<canvas id="hexmap" width="660" height="624" style="border: 1px solid;"></canvas>
-		<div id="hand">
-			<div class="card"><p>Lorem Ipsum Solor Dororthy</p></div>
-			<div class="card"><p>Attack Your Opponent's Pride</p></div>
-			<div class="card"><p>Destroy All Benders</p></div>
+		<div id="gameContainer" style="display: none;">
+			<div id="status">
+				status
+			</div>
+			<canvas id="hexmap" width="660" height="624" style="border: 1px solid;"></canvas>
+			<div id="hand">
+				<div class="card"><p>Lorem Ipsum Solor Dororthy</p></div>
+				<div class="card"><p>Attack Your Opponent's Pride</p></div>
+				<div class="card"><p>Destroy All Benders</p></div>
+			</div>
 		</div>
+		<script src="js/players.js"></script>
+		<script src="js/cards.js"></script>
 		<script src="js/characters.js"></script>
 		<script src="js/hexagons.js"></script>
 		<script src="js/game.js"></script>

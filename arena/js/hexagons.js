@@ -123,5 +123,4 @@ function getIndexForHexagon(q, r) {
 	}
 
 	return -1;
-	//return (q * numHexes) + r;
 }

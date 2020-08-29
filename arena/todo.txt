@@ -1,8 +1,7 @@
 todo
 
 CARDS
-- cards need IDs so we can attach functionality to their onclicks
-- cards need definitions that populate their divs
+- figure out how to add card click handlers lol
 - add a card you can click on that makes you target something
 
 *** FIX THE DISTANCE CHECK HOLY SHIT ***
