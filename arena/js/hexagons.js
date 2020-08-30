@@ -124,3 +124,42 @@ function getIndexForHexagon(q, r) {
 
 	return -1;
 }
+
+function getDirectionIndex(q1, r1, q2, r2) {
+	// get the direction between two hexes
+	console.log("Getting directions between (" + q1 + "," + r1 + ") and (" + q2 + "," + r2 + ")");
+	var q = q2-q1;
+	var r = r2-r1;
+
+	if(q > 0) { q = 1; }
+	else if(q < 0) { q = -1; }
+	else { q = 0; }
+
+	if(r > 0) { r = 1; }
+	else if(r < 0) { r = -1; }
+	else { r = 0; }
+
+	if(q == 1 && r == 0) { console.log("direction: 0"); return 0; }
+	if(q == 1 && r == -1) { console.log("direction: 1"); return 1; }
+	if(q == 0 && r == -1) { console.log("direction: 2"); return 2; }
+	if(q == -1 && r == 0) { console.log("direction: 3"); return 3; }
+	if(q == -1 && r == 1) { console.log("direction: 4"); return 4; }
+	if(q == 0 && r == 1) { console.log("direction: 5"); return 5; }
+
+	if(q == 1 && r == 1) {
+		// it could be 1, 0 or 0, 1. let's pick randomly!
+		var rand = Math.floor(Math.random() * 2);
+		if(rand == 0) { return 0; }
+		else { return 6; }
+	}
+
+	if(q == -1 && r == -1) {
+		// could be -1, 0 or 0, -1. let's pick randomly!
+		var rand = Math.floor(Math.random() * 2);
+		if(rand == 0) { return 3; }
+		else { return 2; }
+	}
+
+	console.log("direction: -1");
+	return -1;
+}

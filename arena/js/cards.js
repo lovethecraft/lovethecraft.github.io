@@ -1,39 +1,66 @@
+// Targets can be "Opponent", "Character", "Ally", "Space", "None"
 var cardDefinitions = [
 	{ // 0
 		name: "Attack",
 		class: "All",
 		text: "Attack target opponent.",
-		initiative: 50
+		initiative: 50,
+		targets: ["Opponent"],
+		clicked: function() {
+			activateTargetingMode();
+		}
 	},
 	{ // 1
 		name: "Move",
 		class: "All",
 		text: "Move to target adjacent hex.",
-		initiative: 49
+		initiative: 49,
+		targets: ["Space"],
+		clicked: function() {
+			activateTargetingMode();
+		}
 	},
 	{ // 2
 		name: "Flame Punch",
 		class: "Fire",
 		text: "Attack target opponent twice.",
-		initiative: 99
+		initiative: 99,
+		targets: ["Opponent"],
+		clicked: function() {
+			activateTargetingMode();
+		}
 	},
 	{ // 3
 		name: "Flow",
 		class: "Air",
 		text: "Enemy attacks miss this round.",
-		initiative: 1
+		initiative: 1,
+		targets: ["None"],
+		clicked: function() {
+			//activateTargetingMode();
+			// just directly call cardBehavior
+			cardBehavior(3, null);
+		}
 	},
 	{ // 4
 		name: "Barrier",
 		class: "Earth",
 		text: "Target hex is impassable for two rounds.",
-		initiative: 25
+		initiative: 25,
+		targets: ["Space"],
+		clicked: function() {
+			activateTargetingMode();
+		}
 	},
 	{ // 5
 		name: "Recover",
 		class: "Water",
 		text: "Target ally moves to target adjacent hex.",
-		initiative: 75
+		initiative: 75,
+		targets: ["Ally"],
+		clicked: function() {
+			activateTargetingMode();
+		}
 	}
 ];
 
@@ -58,9 +85,9 @@ var airDeck = {
 	3: 2
 };
 
-function buildCardString(cardId) {
+function buildCardString(cardId, cardIndex) {
 	var string = "";
-	string = '<div class="card"><p>';
+	string = '<div class="card" id="cardId' + cardIndex + '" onclick="clickCard(' + cardIndex + ')"><p>';
 	string += cardDefinitions[cardId].text;
 	string += '</p></div>';
 	return string;

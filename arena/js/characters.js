@@ -6,4 +6,5 @@ function Character() {
 	this.health = 100;
 	this.position = {q: 0, r: 0};
 	this.team = "";
+	this.assignedCard = -1;
 }

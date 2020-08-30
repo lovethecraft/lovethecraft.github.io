@@ -1,8 +1,12 @@
 todo
 
 CARDS
-- figure out how to add card click handlers lol
-- add a card you can click on that makes you target something
+
+- pending character action map
+- implement the rest of the cards
+
+POLISH
+- show viable targets during targeting mode
 
 *** FIX THE DISTANCE CHECK HOLY SHIT ***
 !!! HECKIN BEANS YOU DID IT YOU MAD LAD !!!

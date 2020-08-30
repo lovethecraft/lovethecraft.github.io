@@ -4,6 +4,7 @@ var handDiv = document.getElementById('hand');
 var gameContainer = document.getElementById('gameContainer');
 var gameMenuContainer = document.getElementById('gameMenuContainer');
 var finishSetupButton = document.getElementById('finishSetupButton');
+var currentlyActiveCardIndex = -1;
 
 // game settings vars
 var checkbox_chooseCharacterFire = document.getElementById('chooseCharacterFire');
@@ -25,9 +26,14 @@ var oldHexQ = -1;
 var oldHexR = -1;
 var characters = [];
 var targetingMode = false;
+var assignmentMode = false;
 var currentHand = [];
 var currentDeck = [];
 var gameMenuVisible = true;
+
+// game state variables
+var cardStack = [];
+var enemyAttacksMiss = false;
 
 function drawBoard() {
 	canvasContext.fillStyle = "#000000";
@@ -113,9 +119,15 @@ function start() {
 	if(ourPlayer.team == "North") {
 		ourPlayer.characters[0].position = {q: 2, r: 2};
 		ourPlayer.characters[1].position = {q: 4, r: 1};
+		// enemies
+		ourPlayer.characters[2].position = {q: 4, r: 4};
+		ourPlayer.characters[3].position = {q: 2, r: 5};
 	} else {
 		ourPlayer.characters[0].position = {q: 4, r: 4};
 		ourPlayer.characters[1].position = {q: 2, r: 5};
+		// enemies
+		ourPlayer.characters[2].position = {q: 2, r: 2};
+		ourPlayer.characters[3].position = {q: 4, r: 1};
 	}
 
 	// populate cards according to character classes
@@ -177,36 +189,209 @@ function start() {
 
 			var x = eventInfo.clientX - rect.left;
 			var y = eventInfo.clientY - rect.top;
-			var hex = hexes[0].pixelToHex(x, y);
-
-			var whichIndex = getIndexForHexagon(hex.q, hex.r);
-			if(whichIndex < 0 || whichIndex >= hexes.length) {
-				return;
-			}
-
-			var dist = hexes[whichIndex].distanceTo(halfHexes, halfHexes, -2 * halfHexes);
-			if(dist <= halfHexes) {
-				if(targetingMode == true) {
-					// did we click on a valid target? for now we are just going to
-					// detect who you clicked on and move them, for testing
-					for(var i = 0; i < characters.length; i++) {
-						var character = characters[i];
-						if((character.position.q == hex.q) && character.position.r == hex.r) {
-							moveCharacterRandomDirection(character);
-							deactivateTargetingMode();
-							break;
-						}
-					}
-				}
-				//hexes[whichIndex].clickHandler();
-				//currentlyClickedHex = hexes[whichIndex];
-			}
-
-			update();
+			clickHandler(x, y);
 		});
 	}
 
 	setInterval(update, 1000);
+}
+
+function clickHandler(x, y) {
+	var hex = hexes[0].pixelToHex(x, y);
+
+	var whichIndex = getIndexForHexagon(hex.q, hex.r);
+	if(whichIndex < 0 || whichIndex >= hexes.length) {
+		return;
+	}
+
+	var dist = hexes[whichIndex].distanceTo(halfHexes, halfHexes, -2 * halfHexes);
+	if(dist <= halfHexes) {
+		// did we click on a character?
+		var character = null;
+		for(var i = 0; i < ourPlayer.characters.length; i++) {
+			var loopCharacter = ourPlayer.characters[i];
+			if((loopCharacter.position.q == hex.q) && loopCharacter.position.r == hex.r) {
+				character = loopCharacter;
+				break;
+			}
+		}
+
+		if(character != null) {
+			console.log("clicked on " + character.class);
+			// are we assigning a card to this character
+			if(assignmentMode == true) {
+				if(character.team == ourPlayer.team) {
+					// assign the card to this person
+					character.assignedCard = currentlyActiveCardIndex;
+					assignmentMode = false;
+					var cardDefinition = cardDefinitions[ourPlayer.hand[currentlyActiveCardIndex]];
+					cardDefinition.clicked();
+				}
+			} else {
+				//are we in card mode?
+				if((targetingMode == true) && (currentlyActiveCardIndex != -1)) {
+					//yes. is this character a valid card target?
+					var cardId = ourPlayer.hand[currentlyActiveCardIndex];
+					var targets = cardDefinitions[cardId].targets;
+					if(targets.indexOf("Character") != -1) {
+						// it can be any character. valid
+						cardBehavior(cardId, character);
+					} else if(targets.indexOf("Opponent") != -1) {
+						// it has to be an enemy
+						if(character.team != ourPlayer.team) {
+							// this is an enemy. valid
+							console.log("targeted enemy");
+							cardBehavior(cardId, character);
+						}
+					} else if(targets.indexOf("Ally") != -1) {
+						// it has to be an ally
+						if(character.team == ourPlayer.team) {
+							// this is an ally. valid
+							cardBehavior(cardId, character);
+						}
+					}
+				}
+			}
+		} else {
+			// we clicked on an empty space.
+			if((targetingMode == true) && (currentlyActiveCardIndex != -1)) {
+				// make sure we can target space
+				var cardId = ourPlayer.hand[currentlyActiveCardIndex];
+				var targets = cardDefinitions[cardId].targets;
+				if(targets.indexOf("Space") != -1) {
+					// we can. validate that space
+					if(validateSpace(cardId, hex)) {
+						console.log("valid");
+						cardBehavior(cardId, hex);
+					} else {
+						// targeted an invalid space.
+						assignmentMode = false;
+						taretingMode = false;
+						console.log("invalid space targeted.");
+					}
+				} else {
+					// just drop us out of all modes
+					assignmentMode = false;
+					targetingMode = false;
+					console.log("invalid. clearing");
+				}
+			}
+		}
+	}
+
+	update();
+}
+
+function validateSpace(cardId, hex) {
+	return true;
+}
+
+function cardBehavior(cardId, target) {
+	var card = cardDefinitions[cardId];
+	var character = null;
+	for(var c = 0; c < ourPlayer.characters.length; c++) {
+		if(ourPlayer.characters[c].assignedCard == currentlyActiveCardIndex) {
+			character = ourPlayer.characters[c];
+		}
+	}
+
+	var cardFunction = null;
+
+	// ugh i hate card games. why do i always want to make card games
+	switch(parseInt(cardId)) {
+		case 0:
+			// attack. target is a character
+			cardFunction = function() {
+				// need to get direction between owner and target
+				var directionIndex = getDirectionIndex(character.position.q, character.position.r, target.position.q, target.position.r);
+				var hex = hexes[getIndexForHexagon(target.position.q, target.position.r)];
+				var neighbor = hex.getNeighbor(directionIndex);
+				return moveCharacter(target, neighbor.q, neighbor.r);
+			};
+			break;
+		case 1:
+			// move to hex. target is a space
+			cardFunction = function() { return moveCharacter(character, target.q, target.r); };
+			break;
+		case 2:
+			// attack twice. target is a character
+			console.log("double attack");
+			cardFunction = function() {
+					var directionIndex = getDirectionIndex(character.position.q, character.position.r, target.position.q, target.position.r);
+					var hex = hexes[getIndexForHexagon(target.position.q, target.position.r)];
+					var neighbor = null;
+					if(hex != null) {
+						neighbor = hex.getNeighbor(directionIndex);
+						moveCharacter(target, neighbor.q, neighbor.r);
+					}
+
+					// do it again?
+					hex = hexes[getIndexForHexagon(neighbor.q, neighbor.r)];
+					if(hex != null) {
+						neighbor = hex.getNeighbor(directionIndex);
+						if(neighbor != null) {
+							moveCharacter(target, neighbor.q, neighbor.r);
+						}
+					}
+			};
+			break;
+		case 3:
+			// enemy attacks miss this round. no target
+			cardFunction = function() {
+				return function() { enemyAttacksMiss = true; }
+			};
+			break;
+		case 4:
+			// put an obstacle on target hex for two rounds
+			cardFunction = function() {
+
+			};
+			break;
+		case 5:
+			// target ally moves to hex. target is {ally, hex}
+			cardFunction = function() {
+
+			};
+			break;
+		default:
+			break;
+	}
+
+	cardStack.push({
+		initiative: card.initiative,
+		f: cardFunction,
+		owner: character
+	});
+
+	targetingMode = false;
+	currentlyActiveCardIndex = -1;
+}
+
+function resolveCardStack() {
+	// first, we need to sort the array by initiative
+	function cmp(a, b) {
+		if(a.initiative > b.initiative)
+			return 1;
+		if(b.initiative > a.initiative)
+			return -1;
+		// if they're tied, break the tie by the owning character's team
+		// TODO: normal version of this
+		if(a.owner.team == "North")
+			return 1;
+		else if(b.owner.team == "North")
+			return -1;
+
+		// ok tied i guess lol
+		return 0;
+	}
+
+	cardStack.sort(cmp);
+
+	for(var c = 0; c < cardStack.length; c++) {
+		cardStack[c].f();
+	}
+
+	cardStack = [];
 }
 
 function update() {
@@ -222,8 +407,8 @@ function updateHand() {
 }
 
 function updateStatus() {
-	var htmlString = "Targeting Mode: " + targetingMode;
-	htmlString += "<br />";
+	var htmlString = "Targeting Mode: " + targetingMode + "<br />";
+	htmlString += "Assignment Mode: " + assignmentMode + "<br />";
 	htmlString += "Cards left in deck: " + ourPlayer.deck.length + "<br />";
 	htmlString += "Cards in discard: " + ourPlayer.discardPile.length + "<br />";
 	statusDiv.innerHTML = htmlString;
@@ -255,6 +440,11 @@ function moveCharacter(character, direction) {
 
 	character.position.q = neighbor.q;
 	character.position.r = neighbor.r;
+}
+
+function moveCharacter(character, q, r) {
+	character.position.q = q;
+	character.position.r = r;
 }
 
 // testing
@@ -290,7 +480,7 @@ function deactivateTargetingMode() {
 function fillCardDiv() {
 	var cardStrings = "";
 	for(var c = 0; c < ourPlayer.hand.length; c++) {
-		cardStrings += buildCardString(ourPlayer.hand[c]);
+		cardStrings += buildCardString(ourPlayer.hand[c], c);
 	}
 
 	handDiv.innerHTML = cardStrings;
@@ -343,6 +533,24 @@ function finishSetup() {
 			char.class = "Air";
 			ourPlayer.characters.push(char);
 		}
+
+		// setting up some dummy enemies
+		var e1 = new Character();
+		var e2 = new Character();
+		if(ourPlayer.team == "North") { 
+			e1.team = "South";
+			e2.team = "South";
+		}
+		else { 
+			e1.team = "North";
+			e2.team = "North";
+		}
+
+		e1.class = "Fire";
+		e2.class = "Water";
+
+		ourPlayer.characters.push(e1);
+		ourPlayer.characters.push(e2);
 
 		start();
 		toggleGameMenu();
@@ -441,17 +649,9 @@ checkbox_chooseCharacterWater.addEventListener('change', processCharacterCheckbo
 checkbox_chooseCharacterAir.addEventListener('change', processCharacterCheckboxes);
 checkbox_chooseCharacterFire.addEventListener('change', processCharacterCheckboxes);
 
-/*document.getElementById("myBtn").onclick = function() {
-	toggleGameMenu();
-}*/
-
-var span = document.getElementsByClassName("close")[0];
-span.onclick = function() {
-	toggleGameMenu();
-}
-
-window.onclick = function(event) {
-	if(event.target == gameMenuContainer) {
-		toggleGameMenu();
-	}
+function clickCard(index) {
+	var cardId = ourPlayer.hand[index];
+	//cardDefinitions[cardId].clicked();
+	currentlyActiveCardIndex = index;
+	assignmentMode = true;
 }
