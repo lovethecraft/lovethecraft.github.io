@@ -5,9 +5,8 @@ var cardDefinitions = [
 		class: "All",
 		text: "Attack target opponent.",
 		initiative: 50,
-		targets: ["Opponent"],
 		clicked: function() {
-			activateTargetingMode();
+			activateTargetingMode("Opponent");
 		}
 	},
 	{ // 1
@@ -15,9 +14,8 @@ var cardDefinitions = [
 		class: "All",
 		text: "Move to target adjacent hex.",
 		initiative: 49,
-		targets: ["Space"],
 		clicked: function() {
-			activateTargetingMode();
+			activateTargetingMode("Space");
 		}
 	},
 	{ // 2
@@ -25,9 +23,8 @@ var cardDefinitions = [
 		class: "Fire",
 		text: "Attack target opponent twice.",
 		initiative: 99,
-		targets: ["Opponent"],
 		clicked: function() {
-			activateTargetingMode();
+			activateTargetingMode("Opponent");
 		}
 	},
 	{ // 3
@@ -47,9 +44,8 @@ var cardDefinitions = [
 		class: "Earth",
 		text: "Target hex is impassable for two rounds.",
 		initiative: 25,
-		targets: ["Space"],
 		clicked: function() {
-			activateTargetingMode();
+			activateTargetingMode("Space");
 		}
 	},
 	{ // 5
@@ -57,9 +53,8 @@ var cardDefinitions = [
 		class: "Water",
 		text: "Target ally moves to target adjacent hex.",
 		initiative: 75,
-		targets: ["Ally"],
 		clicked: function() {
-			activateTargetingMode();
+			activateTargetingMode("Ally");
 		}
 	}
 ];

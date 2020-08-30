@@ -7,4 +7,5 @@ function Character() {
 	this.position = {q: 0, r: 0};
 	this.team = "";
 	this.assignedCard = -1;
+	this.id = -1;
 }

@@ -5,6 +5,9 @@ var gameContainer = document.getElementById('gameContainer');
 var gameMenuContainer = document.getElementById('gameMenuContainer');
 var finishSetupButton = document.getElementById('finishSetupButton');
 var currentlyActiveCardIndex = -1;
+var currentlyActiveCharacter = -1;
+var currentCardTargetType = "";
+var currentCardData = null; // some cards require gathering up more data before triggering
 
 // game settings vars
 var checkbox_chooseCharacterFire = document.getElementById('chooseCharacterFire');
@@ -33,7 +36,8 @@ var gameMenuVisible = true;
 
 // game state variables
 var cardStack = [];
-var enemyAttacksMiss = false;
+var northAttacksMiss = false;
+var southAttacksMiss = false;
 
 function drawBoard() {
 	canvasContext.fillStyle = "#000000";
@@ -133,7 +137,10 @@ function start() {
 	// populate cards according to character classes
 	ourPlayer.addClassCardsToDeck("neutral");
 	for(var c = 0; c < ourPlayer.characters.length; c++) {
-		ourPlayer.addClassCardsToDeck(ourPlayer.characters[c].class);
+		if(ourPlayer.characters[c].team == ourPlayer.team) {
+			ourPlayer.addClassCardsToDeck(ourPlayer.characters[c].class);
+		}
+		ourPlayer.characters[c].id = (c+1);
 	}
 
 	shuffleCards(ourPlayer.deck);
@@ -221,32 +228,47 @@ function clickHandler(x, y) {
 			// are we assigning a card to this character
 			if(assignmentMode == true) {
 				if(character.team == ourPlayer.team) {
-					// assign the card to this person
-					character.assignedCard = currentlyActiveCardIndex;
-					assignmentMode = false;
 					var cardDefinition = cardDefinitions[ourPlayer.hand[currentlyActiveCardIndex]];
-					cardDefinition.clicked();
+					if(cardDefinition.class == "All" || character.class == cardDefinition.class) {
+						// sanity check: do we already have a card assigned to this character?
+						for(var c = 0; c < cardStack.length; c++) {
+							if(cardStack[c].owner == character.id) {
+								console.log("Character already has a card assigned.");
+								assignmentMode = false;
+								currentlyActiveCardIndex = -1;
+								// we do. for now, let's just early out. TODO: remove this entry
+								return;
+							}
+						}
+						// assign the card to this person
+						character.assignedCard = currentlyActiveCardIndex;
+						currentlyActiveCharacter = character.id;
+						assignmentMode = false;
+						currentCardData = {};
+						
+						cardDefinition.clicked();
+					}
 				}
 			} else {
 				//are we in card mode?
 				if((targetingMode == true) && (currentlyActiveCardIndex != -1)) {
 					//yes. is this character a valid card target?
 					var cardId = ourPlayer.hand[currentlyActiveCardIndex];
-					var targets = cardDefinitions[cardId].targets;
-					if(targets.indexOf("Character") != -1) {
+					if(currentCardTargetType == "Character") {
 						// it can be any character. valid
 						cardBehavior(cardId, character);
-					} else if(targets.indexOf("Opponent") != -1) {
+					} else if(currentCardTargetType == "Opponent") {
 						// it has to be an enemy
 						if(character.team != ourPlayer.team) {
 							// this is an enemy. valid
 							console.log("targeted enemy");
 							cardBehavior(cardId, character);
 						}
-					} else if(targets.indexOf("Ally") != -1) {
+					} else if(currentCardTargetType == "Ally") {
 						// it has to be an ally
 						if(character.team == ourPlayer.team) {
 							// this is an ally. valid
+							console.log("targeted ally");
 							cardBehavior(cardId, character);
 						}
 					}
@@ -258,10 +280,10 @@ function clickHandler(x, y) {
 				// make sure we can target space
 				var cardId = ourPlayer.hand[currentlyActiveCardIndex];
 				var targets = cardDefinitions[cardId].targets;
-				if(targets.indexOf("Space") != -1) {
+				if(currentCardTargetType == "Space") {
 					// we can. validate that space
 					if(validateSpace(cardId, hex)) {
-						console.log("valid");
+						console.log("valid space");
 						cardBehavior(cardId, hex);
 					} else {
 						// targeted an invalid space.
@@ -290,7 +312,7 @@ function cardBehavior(cardId, target) {
 	var card = cardDefinitions[cardId];
 	var character = null;
 	for(var c = 0; c < ourPlayer.characters.length; c++) {
-		if(ourPlayer.characters[c].assignedCard == currentlyActiveCardIndex) {
+		if(ourPlayer.characters[c].id == currentlyActiveCharacter) {
 			character = ourPlayer.characters[c];
 		}
 	}
@@ -301,28 +323,47 @@ function cardBehavior(cardId, target) {
 	switch(parseInt(cardId)) {
 		case 0:
 			// attack. target is a character
-			cardFunction = function() {
+			cardData = {
+				character: character,
+				target: target
+			};
+
+			cardFunction = function(c) {
 				// need to get direction between owner and target
-				var directionIndex = getDirectionIndex(character.position.q, character.position.r, target.position.q, target.position.r);
-				var hex = hexes[getIndexForHexagon(target.position.q, target.position.r)];
+				var directionIndex = getDirectionIndex(c.character.position.q, c.character.position.r, c.target.position.q, c.target.position.r);
+				var hex = hexes[getIndexForHexagon(c.target.position.q, c.target.position.r)];
 				var neighbor = hex.getNeighbor(directionIndex);
-				return moveCharacter(target, neighbor.q, neighbor.r);
+				moveCharacter(c.target, neighbor.q, neighbor.r);
 			};
 			break;
 		case 1:
 			// move to hex. target is a space
-			cardFunction = function() { return moveCharacter(character, target.q, target.r); };
+			cardData = {
+				character: character,
+				target: target
+			};
+
+			cardFunction = function(c) { moveCharacter(c.character, c.target.q, c.target.r); };
 			break;
 		case 2:
 			// attack twice. target is a character
 			console.log("double attack");
-			cardFunction = function() {
-					var directionIndex = getDirectionIndex(character.position.q, character.position.r, target.position.q, target.position.r);
-					var hex = hexes[getIndexForHexagon(target.position.q, target.position.r)];
+			cardData = {
+				character: character,
+				target: target
+			};
+			cardFunction = function(c) {
+					// does this attack miss?
+					if((c.character.team == "North" && northAttacksMiss == true) || (c.character.team == "South" && southAttacksMiss)) {
+						return;
+					}
+
+					var directionIndex = getDirectionIndex(c.character.position.q, c.character.position.r, c.target.position.q, c.target.position.r);
+					var hex = hexes[getIndexForHexagon(c.target.position.q, c.target.position.r)];
 					var neighbor = null;
 					if(hex != null) {
 						neighbor = hex.getNeighbor(directionIndex);
-						moveCharacter(target, neighbor.q, neighbor.r);
+						moveCharacter(c.target, neighbor.q, neighbor.r);
 					}
 
 					// do it again?
@@ -330,15 +371,20 @@ function cardBehavior(cardId, target) {
 					if(hex != null) {
 						neighbor = hex.getNeighbor(directionIndex);
 						if(neighbor != null) {
-							moveCharacter(target, neighbor.q, neighbor.r);
+							moveCharacter(c.target, neighbor.q, neighbor.r);
 						}
 					}
 			};
 			break;
 		case 3:
 			// enemy attacks miss this round. no target
-			cardFunction = function() {
-				return function() { enemyAttacksMiss = true; }
+			cardData = character;
+			cardFunction = function(c) {
+				if(c.team == "North") {
+					southAttacksMiss = true;
+				} else {
+					northAttacksMiss = true;
+				}
 			};
 			break;
 		case 4:
@@ -348,10 +394,33 @@ function cardBehavior(cardId, target) {
 			};
 			break;
 		case 5:
-			// target ally moves to hex. target is {ally, hex}
-			cardFunction = function() {
+			console.log("card 5 let's goooo");
+			// target ally moves to hex. target is ally or hex
+			// do we have a full card data yet?
+			console.log("card data: " + currentCardData);
+			if(Object.keys(currentCardData).length == 0) {
+				console.log("current card data");
+				// not yet. store off the target ally and set our target mode to hex
+				currentCardData = {
+					targetCharacter: target
+				};
 
-			};
+				console.log("Target ally set.");
+				activateTargetingMode("Space");
+				return;
+			} else {
+				console.log("how'd we get here?");
+				// cardData is targetCharacter
+				cardData = {
+					targetCharacter: currentCardData.targetCharacter,
+					target: target
+				};
+
+				cardFunction = function(c) {
+					moveCharacter(c.targetCharacter, c.target.q, c.target.r);
+				};
+			}
+
 			break;
 		default:
 			break;
@@ -360,7 +429,8 @@ function cardBehavior(cardId, target) {
 	cardStack.push({
 		initiative: card.initiative,
 		f: cardFunction,
-		owner: character
+		owner: character.id,
+		data: cardData
 	});
 
 	targetingMode = false;
@@ -388,10 +458,16 @@ function resolveCardStack() {
 	cardStack.sort(cmp);
 
 	for(var c = 0; c < cardStack.length; c++) {
-		cardStack[c].f();
+		cardStack[c].f(cardStack[c].data);
 	}
 
+	resetCardStack();
+}
+
+function resetCardStack() {
 	cardStack = [];
+	northAttacksMiss = false;
+	southAttacksMiss = false;
 }
 
 function update() {
@@ -411,6 +487,8 @@ function updateStatus() {
 	htmlString += "Assignment Mode: " + assignmentMode + "<br />";
 	htmlString += "Cards left in deck: " + ourPlayer.deck.length + "<br />";
 	htmlString += "Cards in discard: " + ourPlayer.discardPile.length + "<br />";
+	htmlString += "North attacks miss: " + northAttacksMiss + "<br />";
+	htmlString += "South attacks miss: " + southAttacksMiss + "<br />";
 	statusDiv.innerHTML = htmlString;
 }
 
@@ -443,6 +521,7 @@ function moveCharacter(character, direction) {
 }
 
 function moveCharacter(character, q, r) {
+	console.log("Moving " + character.class + " to (" + q + ", " + r + ")");
 	character.position.q = q;
 	character.position.r = r;
 }
@@ -467,8 +546,9 @@ function moveRandomCharacterRandomDirection() {
 	moveRandomCharacter(direction);
 }
 
-function activateTargetingMode() {
+function activateTargetingMode(type) {
 	targetingMode = true;
+	currentCardTargetType = type;
 	update();
 }
 

@@ -2,11 +2,16 @@ todo
 
 CARDS
 
-- pending character action map
-- implement the rest of the cards
+- display card stack
+- resolve one card at a time with a timer
+- allow replacing cards on assignment
+- tiebreaker
+- add a second player, put enemies on that player
 
 POLISH
 - show viable targets during targeting mode
+- feedback in general
+--- (targeting mode, assignment mode, card instructions)
 
 *** FIX THE DISTANCE CHECK HOLY SHIT ***
 !!! HECKIN BEANS YOU DID IT YOU MAD LAD !!!
