@@ -3,6 +3,7 @@ var statusDiv = document.getElementById('status');
 var handDiv = document.getElementById('hand');
 var gameContainer = document.getElementById('gameContainer');
 var gameMenuContainer = document.getElementById('gameMenuContainer');
+var cardStackContainer = document.getElementById('cardStackContainer');
 var finishSetupButton = document.getElementById('finishSetupButton');
 var currentlyActiveCardIndex = -1;
 var currentlyActiveCharacter = -1;
@@ -20,6 +21,7 @@ var radio_chooseTeamSouth = document.getElementById('chooseTeamSouth');
 
 /* TEMPORARY PLAYER-SPECIFIC VARIABLES */
 var ourPlayer = new Player();
+var enemyPlayer = new Player();
 
 var canvasContext = null;
 var numHexes = 7; // largest row/col across the middle
@@ -33,6 +35,7 @@ var assignmentMode = false;
 var currentHand = [];
 var currentDeck = [];
 var gameMenuVisible = true;
+var shouldUpdate = true;
 
 // game state variables
 var cardStack = [];
@@ -86,7 +89,6 @@ function drawHexagon(hex, fill) {
 	}
 	else {
 		// is there a character here?
-		var foundCharacter = false;
 		for(var x = 0; x < ourPlayer.characters.length; x++) {
 			if(ourPlayer.characters[x].position.q == hex.q && ourPlayer.characters[x].position.r == hex.r) {
 				if(ourPlayer.characters[x].class == "Water") {
@@ -96,6 +98,22 @@ function drawHexagon(hex, fill) {
 				} else if(ourPlayer.characters[x].class == "Air") {
 					canvasContext.fillStyle = "#c0c0c0";
 				} else if(ourPlayer.characters[x].class == "Fire") {
+					canvasContext.fillStyle = "#FF0000";
+				}
+				canvasContext.fill();
+				return;
+			}
+		}
+
+		for(var x = 0; x < enemyPlayer.characters.length; x++) {
+			if(enemyPlayer.characters[x].position.q == hex.q && enemyPlayer.characters[x].position.r == hex.r) {
+				if(enemyPlayer.characters[x].class == "Water") {
+					canvasContext.fillStyle = "#0000FF";
+				} else if(enemyPlayer.characters[x].class == "Earth") {
+					canvasContext.fillStyle = "#964b00";
+				} else if(enemyPlayer.characters[x].class == "Air") {
+					canvasContext.fillStyle = "#c0c0c0";
+				} else if(enemyPlayer.characters[x].class == "Fire") {
 					canvasContext.fillStyle = "#FF0000";
 				}
 				canvasContext.fill();
@@ -124,23 +142,25 @@ function start() {
 		ourPlayer.characters[0].position = {q: 2, r: 2};
 		ourPlayer.characters[1].position = {q: 4, r: 1};
 		// enemies
-		ourPlayer.characters[2].position = {q: 4, r: 4};
-		ourPlayer.characters[3].position = {q: 2, r: 5};
+		enemyPlayer.characters[0].position = {q: 4, r: 4};
+		enemyPlayer.characters[1].position = {q: 2, r: 5};
 	} else {
 		ourPlayer.characters[0].position = {q: 4, r: 4};
 		ourPlayer.characters[1].position = {q: 2, r: 5};
 		// enemies
-		ourPlayer.characters[2].position = {q: 2, r: 2};
-		ourPlayer.characters[3].position = {q: 4, r: 1};
+		enemyPlayer.characters[0].position = {q: 2, r: 2};
+		enemyPlayer.characters[1].position = {q: 4, r: 1};
 	}
 
 	// populate cards according to character classes
 	ourPlayer.addClassCardsToDeck("neutral");
 	for(var c = 0; c < ourPlayer.characters.length; c++) {
-		if(ourPlayer.characters[c].team == ourPlayer.team) {
-			ourPlayer.addClassCardsToDeck(ourPlayer.characters[c].class);
-		}
+		ourPlayer.addClassCardsToDeck(ourPlayer.characters[c].class);
 		ourPlayer.characters[c].id = (c+1);
+	}
+
+	for(var c = 0; c < enemyPlayer.characters.length; c++) {
+		enemyPlayer.characters[c].id = (c + 1 + ourPlayer.characters.length);
 	}
 
 	shuffleCards(ourPlayer.deck);
@@ -222,6 +242,13 @@ function clickHandler(x, y) {
 				break;
 			}
 		}
+		for(var i = 0; i < enemyPlayer.characters.length; i++) {
+			var loopCharacter = enemyPlayer.characters[i];
+			if((loopCharacter.position.q == hex.q) && loopCharacter.position.r == hex.r) {
+				character = loopCharacter;
+				break;
+			}
+		}
 
 		if(character != null) {
 			console.log("clicked on " + character.class);
@@ -261,14 +288,12 @@ function clickHandler(x, y) {
 						// it has to be an enemy
 						if(character.team != ourPlayer.team) {
 							// this is an enemy. valid
-							console.log("targeted enemy");
 							cardBehavior(cardId, character);
 						}
 					} else if(currentCardTargetType == "Ally") {
 						// it has to be an ally
 						if(character.team == ourPlayer.team) {
 							// this is an ally. valid
-							console.log("targeted ally");
 							cardBehavior(cardId, character);
 						}
 					}
@@ -283,19 +308,16 @@ function clickHandler(x, y) {
 				if(currentCardTargetType == "Space") {
 					// we can. validate that space
 					if(validateSpace(cardId, hex)) {
-						console.log("valid space");
 						cardBehavior(cardId, hex);
 					} else {
 						// targeted an invalid space.
 						assignmentMode = false;
 						taretingMode = false;
-						console.log("invalid space targeted.");
 					}
 				} else {
 					// just drop us out of all modes
 					assignmentMode = false;
 					targetingMode = false;
-					console.log("invalid. clearing");
 				}
 			}
 		}
@@ -347,7 +369,6 @@ function cardBehavior(cardId, target) {
 			break;
 		case 2:
 			// attack twice. target is a character
-			console.log("double attack");
 			cardData = {
 				character: character,
 				target: target
@@ -394,22 +415,17 @@ function cardBehavior(cardId, target) {
 			};
 			break;
 		case 5:
-			console.log("card 5 let's goooo");
 			// target ally moves to hex. target is ally or hex
 			// do we have a full card data yet?
-			console.log("card data: " + currentCardData);
 			if(Object.keys(currentCardData).length == 0) {
-				console.log("current card data");
 				// not yet. store off the target ally and set our target mode to hex
 				currentCardData = {
 					targetCharacter: target
 				};
 
-				console.log("Target ally set.");
 				activateTargetingMode("Space");
 				return;
 			} else {
-				console.log("how'd we get here?");
 				// cardData is targetCharacter
 				cardData = {
 					targetCharacter: currentCardData.targetCharacter,
@@ -428,12 +444,14 @@ function cardBehavior(cardId, target) {
 
 	cardStack.push({
 		initiative: card.initiative,
+		cardText: card.text,
 		f: cardFunction,
 		owner: character.id,
 		data: cardData
 	});
 
 	targetingMode = false;
+	ourPlayer.discardCard(currentlyActiveCardIndex);
 	currentlyActiveCardIndex = -1;
 }
 
@@ -457,11 +475,72 @@ function resolveCardStack() {
 
 	cardStack.sort(cmp);
 
+	// first, populate the card stack div
+	updateCardStackDiv();
+
+	// now, go through each one by one
 	for(var c = 0; c < cardStack.length; c++) {
-		cardStack[c].f(cardStack[c].data);
+		setTimeout(runNextCard, (c + 1) * 1000);
+		//cardStack[c].f(cardStack[c].data);
+		//updateCardStackDiv();
+	}
+}
+
+function isHexOccupied(q, r) {
+	for(var c = 0; c < ourPlayer.characters.length; c++) {
+		if(ourPlayer.characters[c].position.q == q && ourPlayer.characters[c].position.r == r) {
+			return true;
+		}
 	}
 
-	resetCardStack();
+	for(var c = 0; c < enemyPlayer.characters.length; c++) {
+		if(enemyPlayer.characters[c].position.q == q && enemyPlayer.characters[c].position.r == r) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+function runNextCard() {
+	console.log("Running next card. Remaining: " + cardStack.length);
+	cardStack[0].f(cardStack[0].data);
+	cardStack.shift();
+
+	if(cardStack.length == 0) {
+		for(var c = ourPlayer.hand.length; c < ourPlayer.maximumCardsInHand; c++) {
+			ourPlayer.drawCard();
+		}
+	}
+
+	updateCardStackDiv();
+}
+
+function updateCardStackDiv() {
+	cardStackContainer.innerHTML = "";
+	var cardStackString = "";
+	for(var c = 0; c < cardStack.length; c++) {
+		var owner = "";
+		var team = "";
+		for(var char = 0; char < ourPlayer.characters.length; char++) {
+			if(ourPlayer.characters[char].id == cardStack[c].owner) {
+				owner = ourPlayer.characters[char].class;
+				team = ourPlayer.characters[char].team;
+			}
+		}
+
+		for(var char = 0; char < enemyPlayer.characters.length; char++) {
+			if(enemyPlayer.characters[char].id == cardStack[c].owner) {
+				owner = enemyPlayer.characters[char].class;
+				team = enemyPlayer.characters[char].team;
+			}
+		}
+
+		cardStackString += team + " " + owner + ": " + cardStack[c].cardText + "<br />";
+	}
+
+	cardStackContainer.innerHTML = cardStackString;
+	update();
 }
 
 function resetCardStack() {
@@ -471,6 +550,10 @@ function resetCardStack() {
 }
 
 function update() {
+	if(shouldUpdate != true) {
+		return;
+	}
+
 	canvasContext.clearRect(0, 0, canvas.width, canvas.height);
 	drawBoard();
 	updateStatus();
@@ -516,12 +599,22 @@ function moveCharacter(character, direction) {
 		return;
 	}
 
+	if(isHexOccupied(neighbor.q, neighbor.r)) {
+		console.log("Neighbor hex was occupied.");
+		return;
+	}
+
 	character.position.q = neighbor.q;
 	character.position.r = neighbor.r;
 }
 
 function moveCharacter(character, q, r) {
 	console.log("Moving " + character.class + " to (" + q + ", " + r + ")");
+	if(isHexOccupied(q, r)) {
+		console.log("Hex is already occupied.");
+		return;
+	}
+
 	character.position.q = q;
 	character.position.r = r;
 }
@@ -582,8 +675,10 @@ function finishSetup() {
 		// do stuff with that data
 		if(radio_chooseTeamSouth.checked == true) {
 			ourPlayer.team = "South";
+			enemyPlayer.team = "North";
 		} else {
 			ourPlayer.team = "North";
+			enemyPlayer.team = "South";
 		}
 
 		if(checkbox_chooseCharacterEarth.checked == true) {
@@ -629,8 +724,8 @@ function finishSetup() {
 		e1.class = "Fire";
 		e2.class = "Water";
 
-		ourPlayer.characters.push(e1);
-		ourPlayer.characters.push(e2);
+		enemyPlayer.characters.push(e1);
+		enemyPlayer.characters.push(e2);
 
 		start();
 		toggleGameMenu();

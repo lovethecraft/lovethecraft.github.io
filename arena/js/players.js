@@ -4,6 +4,7 @@ function Player() {
 	this.deck = [];
 	this.hand = [];
 	this.discardPile = [];
+	this.maximumCardsInHand = 3;
 
 	this.addClassCardsToDeck = function(c) {
 		var deckToAdd = {};

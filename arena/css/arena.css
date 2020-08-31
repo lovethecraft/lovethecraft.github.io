@@ -85,3 +85,9 @@ canvas {
 	text-decoration: none;
 	cursor: pointer;
 }
+
+#cardStackContainer {
+	border: 1px solid;
+	width: 250px;
+	float: left;
+}

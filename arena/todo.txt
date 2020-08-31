@@ -2,11 +2,15 @@ todo
 
 CARDS
 
-- display card stack
-- resolve one card at a time with a timer
+- hook up valid space req
+--- adjacent space must be actually adjacent lol
+- remove cards from hand on assignment
 - allow replacing cards on assignment
+- add cards back to hand on reassignment
 - tiebreaker
-- add a second player, put enemies on that player
+- logging cleanup pass
+--- implement obstacle card
+- eliminate after being kncked out of the ring
 
 POLISH
 - show viable targets during targeting mode
